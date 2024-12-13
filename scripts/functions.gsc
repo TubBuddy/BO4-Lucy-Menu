@@ -180,14 +180,14 @@ GiveAllPerks()
     self thread zm_perks::function_cc24f525();
 }
 
-PlayerGiveScore(value)
+PlayerGiveScore(value, player)
 {
-    self zm_score::add_to_player_score(value);
+    player zm_score::add_to_player_score(value);
 }
 
-PlayerTakeScore(value)
+PlayerTakeScore(value, player)
 {
-    self zm_score::minus_to_player_score(value);
+    player zm_score::minus_to_player_score(value);
 }
 
 Clone()
@@ -487,16 +487,8 @@ GiveSvalinnGuard()
 PlayEE2Song()
 {
     level thread zm_audio::sndmusicsystem_stopandflush();
-    waitframe(1);
-    level thread zm_audio::sndmusicsystem_playstate("ee_song_2");
-}
-
-PlayAudioToClients(audioFile)//Future replacement
-{
-    if(!isDefined(audioFile)) return;
-    level thread zm_audio::sndmusicsystem_stopandflush();
-    waitframe(1);
-    level thread zm_audio::sndmusicsystem_playstate(audioFile);
+	waitframe(1);
+	level thread zm_audio::sndmusicsystem_playstate("ee_song_2");
 }
 
 GetWeaponDisplayName()
@@ -514,12 +506,11 @@ GetWeaponHash()
 
 GiveClientWeapon(WeaponName, player)
 {
-    self zm_weapons::give_build_kit_weapon(getweapon(WeaponName));
-    self switchtoweapon(getweapon(WeaponName));
+    player giveWeapon(getWeapon(WeaponName));
     wait .1;
-    player giveMaxAmmo(getweapon(WeaponName));
+    player giveMaxAmmo(getWeapon(WeaponName));
     wait .1;
-    player switchToWeapon(getweapon(WeaponName));
+    player switchToWeapon(getWeapon(WeaponName));
     player iPrintLnBold("You received "+WeaponName);
 }
 DropWeapon()
@@ -857,6 +848,7 @@ bo4_UnlockAll(player)
             stat.value   = Int(TableLookup("gamedata/stats/zm/statsmilestones" + a + ".csv", 0, value, 2));
             stat.type    = TableLookup("gamedata/stats/zm/statsmilestones" + a + ".csv", 0, value, 3);
             stat.name    = TableLookup("gamedata/stats/zm/statsmilestones" + a + ".csv", 0, value, 4);
+ 
             switch(stat.type)
             {
                 case "global":
@@ -871,25 +863,16 @@ bo4_UnlockAll(player)
                     {
                         player stats::set_stat(#"GroupStats", group, #"stats", stat.name, #"StatValue", stat.value);
                         player stats::set_stat(#"GroupStats", group, #"stats", stat.name, #"Challengevalue", stat.value);
+ 
                         wait 0.01;
                     }
                     break;
                 default:
-                    foreach(weap in level.zombie_weapons){
-                        if(isdefined(weap.weapon.name)) {
-                            player addweaponstat(weap.weapon, #"kills", 5000);//Normal Kills
-                            player addweaponstat(weap.weapon, #"headshots", 5000);//Headshots
-                            player addweaponstat(weap.weapon, #"allperkkills", 5000);//Kills with All Perks
-                            player addweaponstat(weap.weapon, #"noperkkills", 5000);//No perks
-                            player addweaponstat(weap.weapon, #"packedkills", 5000);//Pack a punched Kills
-                            player addweaponstat(weap.weapon, #"heavykills", 5000);//Catalyst?
-                            player addweaponstat(weap.weapon, #"minibosskills", 5000);//warden, Gladiatiors
-                            player addweaponstat(weap.weapon, #"verminkills", 5000);//Dogs / Tigers
-                            player addweaponstat(weap.weapon, #"crawlerkills", 5000);//Crawlers
-                            player addweaponstat(weap.weapon, #"instakills", 5000);//Instakill
-                            player addweaponstat(weap.weapon, #"hash_657e22dcdd18da77", 5000);//Pop Shocks Challenge
-                            waitframe(1);
-                            }
+                    foreach(weap in level.zombie_weapons)
+                        if(isDefined(weap.weapon) && zm_utility::getweaponclasszm(weap.weapon) == stat.type)
+                        {
+                            player AddWeaponStat(weap.weapon, stat.name, stat.value);
+                            wait 0.01;
                         }
                     break;
             }
@@ -901,26 +884,6 @@ bo4_UnlockAll(player)
     player iPrintlnBold("Unlock All Challenges ^2Done");
     if(player != self)
         self iPrintlnBold(player getName() + ": Unlock All Challenges ^2Done");
-}
-
-Dev_UnlockCamos(player)
-{
-    foreach(weap in level.zombie_weapons)
-    {
-            player addweaponstat(weap.weapon, #"kills", 5000);//Normal Kills
-            player addweaponstat(weap.weapon, #"headshots", 5000);//Headshots
-            player addweaponstat(weap.weapon, #"allperkkills", 5000);//Kills with All Perks
-            player addweaponstat(weap.weapon, #"noperkkills", 5000);//No perks
-            player addweaponstat(weap.weapon, #"packedkills", 5000);//Pack a punched Kills
-            player addweaponstat(weap.weapon, #"heavykills", 5000);//Catalyst?
-            player addweaponstat(weap.weapon, #"minibosskills", 5000);//warden, Gladiatiors
-            player addweaponstat(weap.weapon, #"verminkills", 5000);//Dogs / Tigers
-            player addweaponstat(weap.weapon, #"crawlerkills", 5000);//Crawlers
-            player addweaponstat(weap.weapon, #"instakills", 5000);//Instakill
-            player addweaponstat(weap.weapon, #"hash_657e22dcdd18da77", 5000);//Pop Shocks Challenge
-            waitframe(1);
-    }
-    player S("All Camos Unlocked!");    
 }
 
 CompleteActiveContracts(player)
@@ -1410,57 +1373,4 @@ AllWeaponsStart()
         self iPrintLnBold("^1Awarded New Weapon");
         wait 45;
     }
-}
-SetFOV(Value)
-{
-    setDvar("cg_fov", Value);
-    self iPrintLnBold("^4FOV Set To: ^1"+Value);
-}
-
-        get_zvar(zvar) {
-	if(!isdefined(level.zombie_vars)) {
-		level.zombie_vars = [];
-	}
-	return level.zombie_vars[zvar];
-}
-SetXPMultiplier(value = undefined) {
-    if (isdefined(value) && value >= 0) {
-        level.menuXPMult = value;
-        level.var_3426461d = value;
-        self iPrintLnBold("^5XP multiplier set to ^6" + value);
-    } else {
-        level.XPMult = undefined;
-        level.var_3426461d = get_xp_multiplier();
-        self iPrintLnBold("^5XP multiplier set to normal");
-    }
-}
-get_xp_multiplier() {
-    if(isDefined(level.XPMult) && level.XPMult >= 0){
-        return level.XPMult;
-    }
-	n_multiplier = get_zvar(#"hash_1ab42b4d7db4cb3c");
-	if(level.gametype == #"zstandard") {
-		switch(level.players.size) {
-			case 1:
-				return n_multiplier * 0.55;
-			case 2:
-				return n_multiplier * 0.75;
-			case 3:
-				return n_multiplier * 0.9;
-			case 4:
-				return n_multiplier * 1.1;
-		}
-	} else {
-		switch(level.players.size) {
-			case 1:
-				return n_multiplier * 0.63;
-			case 2:
-				return n_multiplier * 0.75;
-			case 3:
-				return n_multiplier * 0.8;
-			case 4:
-				return n_multiplier * 0.95;
-		}
-	}
-    return 1;
 }
