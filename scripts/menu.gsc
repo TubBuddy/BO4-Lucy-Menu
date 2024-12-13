@@ -20,7 +20,7 @@ runMenuIndex(menu)
                 self addOpt("Zombie Menu", &newMenu, "Zombie Menu");
                 self addOpt("Lobby Settings", &newMenu, "Lobby Settings");
                 self addOpt("Mystery Box Menu", &newMenu, "Mystery Box Menu");
-                self addOpt("Account Menu", &newMenu, "Rank Menu");
+                self addOpt("Account Menu", &newMenu, "Account Menu");
                 self addOpt("Teleport Menu", &newMenu, "Teleport Menu");
                 if(self getVerification() > 1)
                 {
@@ -39,6 +39,75 @@ runMenuIndex(menu)
                 }
             }
             break;
+        case "AllClient":
+            self addMenu(menu, "All Client Options");
+                self addOpt("All God Mode", &ClientFuncs, 0, undefined);
+                self addOpt("All Unlimited Ammo", &ClientFuncs, 1, undefined);
+                self addOpt("All Max Points", &ClientFuncs, 2, undefined);
+                self addOpt("Give Everyone All Perks", &ClientFuncs, 3, undefined);
+                self addOptIncSlider("Self Revives", &SetSelfRevives, 0, 0, 125, 5);
+        break;
+        case "GameModes":
+            self addMenu(menu, "Game Modes");
+                self addOpt("All The Weapons", &GameModeHandler, "All The Weapons");
+                self addOpt("Gun Game", &GameModeHandler, "Gun Game");
+        break;
+        case "Host Menu":
+            self addMenu(menu, "Host Menu");
+                self addOptBool(level.Modvars, "Toggle ModVars", &ModvarTest);
+                self addOpt("Map Selection", &newMenu, "Map Selection");
+                self addOpt("Exit Level", &PlayerExitLevel);
+                self addOpt("Print Weapon Display Name", &GetWeaponDisplayName);//Not a permanent option, can sit here
+                self addOpt("Print Weapon Hash", &GetWeaponHash);//Not a permanent Option, can sit here.
+                self addOpt("Print Coords", &BO4OriginPrint);
+                self addOpt("Restart Map", &RestartMap);
+            break;
+        case "Players":
+            self addMenu(menu, "Players");
+                foreach(player in level.players)
+                {
+                    if(!isDefined(player.playerSetting["verification"]))
+                        player.playerSetting["verification"] = level.MenuStatus[level.AutoVerify];
+                    
+                    self addOpt("[^5" + player.playerSetting["verification"] + "^6]" + player getName(), &newMenu, "Options " + player GetEntityNumber());
+                }
+            break;
+        default:
+            foundplayer = false;
+            for(a=0;a<level.players.size;a++)
+            {
+                sepmenu = StrTok(menu, " ");
+                if(int(sepmenu[(sepmenu.size - 1)]) == level.players[a] GetEntityNumber())
+                {
+                    foundplayer = true;
+                    self MenuOptionsPlayer(menu, level.players[a]);
+                }
+            }
+            
+            if(!foundplayer)
+            {
+                self addMenu(menu, "404 ERROR");
+                    self addOpt("Page Not Found");
+            }
+            break;
+    }
+}
+
+MenuOptionsPlayer(menu, player)
+{
+    self endon("disconnect");
+    
+    sepmenu = StrTok(menu, " " + player GetEntityNumber());
+    newmenu = "";
+    for(a=0;a<sepmenu.size;a++)
+    {
+        newmenu += sepmenu[a];
+        if(a != (sepmenu.size - 1))
+            newmenu += " ";
+    }
+    
+    switch(newmenu)
+    {
         case "Personal Menu":
             self addMenu(menu, "Personal Menu");
                 self addOptBool(self.godmode, "God Mode", &Godmode);
@@ -221,10 +290,10 @@ runMenuIndex(menu)
         break;
         case "Score Menu":
             self addMenu(menu, "Score");
-                self addOpt("Max Points", &PlayerGiveScore, 4000000, self);
-                self addOpt("Take Points", &PlayerTakeScore, 4000000, self);
-                self addOptIncSlider("Add Points", &PlayerGiveScore, 0, 0, 1000000, 10000, self);
-                self addOptIncSlider("Take Points", &PlayerTakeScore, 0, 0, 1000000, 10000, self);
+                self addOpt("Max Points", &PlayerGiveScore, 4000000, player);
+                self addOpt("Take Points", &PlayerTakeScore, 4000000, player);
+                self addOptIncSlider("Add Points", &PlayerGiveScore, 0, 0, 1000000, 10000, player);
+                self addOptIncSlider("Take Points", &PlayerTakeScore, 0, 0, 1000000, 10000, player);
             break;
 
         case "Fun Menu":
@@ -257,7 +326,6 @@ runMenuIndex(menu)
         case "Weapons and items Menu":
             self addMenu(menu, "Weapon Menu");
             self addOpt("Normal Weapons and items", &newMenu, "Normal Weapons and items");
-            //self addOpt("Weaps Test", &newMenu, "Weaps Test");
             self addOpt("Upgraded Weapons", &newMenu, "Upgraded Weapons");
             self addOpt("Bullet Effects Menu", &newMenu, "Bullets Menu");
             self addOpt("Camo Selector", &newMenu, "Camo Selector");
@@ -302,7 +370,7 @@ runMenuIndex(menu)
         break;
         case "Camo Selector":
         self addMenu(menu, "Camo Selector");
-            for(a=0;a<96;a++)
+            for(a=0;a<395;a++)
                     self addOpt("Camo: " + (a + 1), &bo4_CamoGiver, a);
         break;
         case "Normal Weapons and items":
@@ -412,6 +480,7 @@ runMenuIndex(menu)
                 self addOpt("Purified Kraken", &GiveClientWeapon, "ww_tricannon_water_t8", self);
                 self addOpt("Radiant Kraken", &GiveClientWeapon, "ww_tricannon_air_t8", self);
                 self addOpt("Ballistic Shield", &GiveClientWeapon, "zhield_dw", self);
+                self addOpt("Svalinn Guard", &GiveSvalinnGuard);
             }
             else if(BO4GetMap() == "IX"){
                 self addOpt("Brazen Bull", &GiveClientWeapon, "zhield_zword_dw", self);
@@ -422,13 +491,15 @@ runMenuIndex(menu)
                 self addOpt("Hells Retriever", &GiveClientWeapon, "tomahawk_t8", self);
                 self addOpt("Magmagat", &GiveClientWeapon, "ww_blundergat_fire_t8", self);
                 self addOpt("AcidGat", &GiveClientWeapon, "ww_blundergat_acid_t8", self);
+                self addOpt("Spoon", &GiveClientWeapon, "spoon_alcatraz", self);
                 self addOpt("Spectral Shield", &GiveClientWeapon, "zhield_spectral_dw", self);
-		self addOpt("Spoon", &GiveClientWeapon, "spoon_alcatraz", self);
-                self addOpt("Golden Spork", &GiveClientWeapon, "spork_alcatraz", self);
+                self addOpt("Golden Spork", &GiveClientWeapon, "golden_knife", self);
             }
             else if(BO4GetMap() == "Dead"){
                 self addOpt("Savage Impaler", &GiveClientWeapon, "ww_crossbow_impaler_t8", self);
                 self addOpt("Alistairs Folly", &GiveClientWeapon, "ww_random_ray_gun1", self);
+                self addOpt("Chaos Theroy", &GiveClientWeapon, "ww_random_ray_gun2", self);
+                self addOpt("Alistairs Annihilator", &GiveClientWeapon, "ww_random_ray_gun3", self);
                 self addOpt("Ballistic Shield", &GiveClientWeapon, "zhield_dw", self);
                 self addOpt("Stake Knife (will go back to knife when swapping weapons)", &GiveClientWeapon, "stake_knife", self);
             }
@@ -438,18 +509,18 @@ runMenuIndex(menu)
                 self addOpt("Hand of Gaia", &GiveClientWeapon, "ww_hand_g", self);
                 self addOpt("Hand of Charon", &GiveClientWeapon, "ww_hand_c", self);
                 self addOpt("Apollo Will", &GiveClientWeapon, "zhield_zpear_dw", self);
-                self addOpt("Pegasus Strike", &GiveClientWeapon, "Thunderstorm", self);
+                self addOpt("APegasus Strike", &GiveClientWeapon, "Thunderstorm", self);
             }
             else if(BO4GetMap() == "Tag"){
                 self addOpt("ThunderGun", &GiveClientWeapon, "thundergun", self);
                 self addOpt("Wunderwaffe DG2", &GiveClientWeapon, "ww_tesla_gun_t8", self);
                 self addOpt("Wonderwaffe Sniper", &GiveClientWeapon, "ww_tesla_sniper_t8", self);
                 self addOpt("Tundragun", &GiveClientWeapon, "tundragun", self);
-		self addOpt("Snowballs", &GiveClientWeapon, "snowball", self);
-                self addOpt("Yellow Snowballs", &GiveClientWeapon, "snowball_yellow", self);
+                self addOpt("Yellow Snowballs", &GiveClientWeapon, "snowball_yellow", self);//should there not be an option for snowball_yellow_upgraded??
                 self addOpt("Samantha Box", &GiveClientWeapon, "music_box", self);
                 self addOpt("Ballistic Shield", &GiveClientWeapon, "zhield_dw", self);
                 self addOpt("Matryoska Dolls", &GiveClientWeapon, "eq_nesting_doll_grenade", self);
+
             }
             else if(BO4GetMap() == "AO"){
                 self addOpt("Ray Gun II-V", &GiveClientWeapon, "ray_gun_mk2v", self);
@@ -457,6 +528,7 @@ runMenuIndex(menu)
                 self addOpt("Ray Gun II-Y", &GiveClientWeapon, "ray_gun_mk2y", self);
                 self addOpt("Ray Gun II-Z", &GiveClientWeapon, "ray_gun_mk2z", self);
                 self addOpt("Ballistic Shield", &GiveClientWeapon, "zhield_dw", self);
+                self addOpt("Give MR6", &GiveClientWeapon, "pistol_standard", self);
             }
              else if(BO4GetMap() == "Classified"){
                 self addOpt("Winter's Howl", &GiveClientWeapon, "ww_freezegun_t8", self);
@@ -562,7 +634,6 @@ runMenuIndex(menu)
                 self addOpt("Purified Kraken", &GiveClientWeapon, "ww_tricannon_water_t8_upgraded", self);
                 self addOpt("Radiant Kraken", &GiveClientWeapon, "ww_tricannon_air_t8_upgraded", self);
                 self addOpt("Upgraded Kraken", &GiveClientWeapon, "ww_tricannon_t8_upgraded", self);
-		self addOpt("Svalinn Guard", &GiveSvalinnGuard);
             }
             else if(BO4GetMap() == "Blood"){
                 self addOpt("Magnus Operandi", &GiveClientWeapon, "ww_blundergat_fire_t8_upgraded", self);
@@ -570,9 +641,6 @@ runMenuIndex(menu)
                 self addOpt("The Sweeper", &GiveClientWeapon, "ww_blundergat_t8_upgraded", self);
                 self addOpt("Hells Redeemer", &GiveClientWeapon, "tomahawk_t8_upgraded", self);
                 self addOpt("Attuned Spectral Shield", &GiveClientWeapon, "zhield_spectral_dw_upgraded", self);
-		self addOpt("Golden Spork Knife", &GiveClientWeapon, "spknifeork", self);
-		self addOpt("Golden Scalpel", &GiveClientWeapon, "golden_knife", self);
-                self addOpt("Tempered Blundergat", &GiveClientWeapon, "ww_blundergat_fire_t8_unfinished", self);
             }
             else if(BO4GetMap() == "AE"){
                 self addOpt("Hand of Ouranous", &GiveClientWeapon, "ww_hand_o_upgraded", self);
@@ -585,8 +653,6 @@ runMenuIndex(menu)
                 self addOpt("Wonderwaffe DG-3 JZ", &GiveClientWeapon, "ww_tesla_gun_t8_upgraded", self);
                 self addOpt("Boreas Blizzard", &GiveClientWeapon, "tundragun_upgraded", self);
                 self addOpt("Wunderwaffe DG-Funkenschutze", &GiveClientWeapon, "ww_tesla_sniper_upgraded_t8", self);//Correct stringname from Hashed scripts
-		self addOpt("Snowballs Upgraded", &GiveClientWeapon, "snowball_upgraded", self);
-                self addOpt("Yellow Snowballs Upgraded", &GiveClientWeapon, "snowball_yellow_upgraded", self);
             }
             else if(BO4GetMap() == "AO"){
                 self addOpt("Ray Gun II-V", &GiveClientWeapon, "ray_gun_mk2v_upgraded", self);
@@ -602,7 +668,8 @@ runMenuIndex(menu)
                 self addOpt("Iron Bull", &GiveClientWeapon, "zhield_zword_dw_upgraded", self);
             }   
             else if(BO4GetMap() == "Dead"){
-                self addOpt("Chaos Theory", &GiveClientWeapon, "ww_random_ray_gun2", self);
+                self addOpt("Alistairs Folly", &GiveClientWeapon, "ww_random_ray_gun1", self);
+                self addOpt("Chaos Folly", &GiveClientWeapon, "ww_random_ray_gun2", self);
                 self addOpt("Alistairs Annihilator", &GiveClientWeapon, "ww_random_ray_gun3", self);
             }   
         break;
@@ -622,7 +689,7 @@ runMenuIndex(menu)
 
         case "Zombie Menu":
             self addMenu(menu, "Zombie Menu");
-            self addOpt("Kill All Zombies", &KillAllZombies, self);
+            self addOpt("Kill All Zombies", &KillAllZombies, player);
             self addOpt("Teleport Zombies", &TeleportZombies);
             self addOptIncSlider("Edit Round: ", &RoundEdit, 0, 0, 9999, 1);
             self addOptBool(self.ZombiePos, "Spawn Zombies In Front Of You", &StartZombiePosistion);
@@ -649,14 +716,14 @@ runMenuIndex(menu)
             self addOpt("Random Box Price", &BoxPrice, randomIntRange(0, 999999));
         break;
 
-        case "Rank Menu":
+        case "Account Menu":
             self addMenu(menu,"Account Menu");
-            self addOpt("Max Level", &BO4Level55, self);
-            self addOptBool(self.PlasmaLoop, "Plasma Loop", &PlasmaLoopplayer, self);
-            self addOpt("Complete Active Contracts", &CompleteActiveContracts, self);
-            self addOpt("Unlock All", &bo4_UnlockAll, self);
-            self addOpt("Max Weapon Levels", &bo4_MaxLevels, self);
-            self addOpt("Give Achievements", &Achievements, self);
+            self addOpt("Complete Active Contracts", &CompleteActiveContracts, player);
+            self addOpt("Max Level", &BO4Level55, player);
+            self addOptBool(player.PlasmaLoop, "Plasma Loop", &PlasmaLoopplayer, player);
+            self addOpt("Unlock All", &bo4_UnlockAll, player);
+            self addOpt("Max Weapon Levels", &bo4_MaxLevels, player);
+            self addOpt("Give Achievements", &Achievements, player);
             self addOpt("Stats Menu", &newMenu, "Stats Menu");
         break;
         case "Stats Menu":
@@ -667,76 +734,6 @@ runMenuIndex(menu)
             self addOptIncSlider("Most Headshots", &Stats_MostHeadshots, 0, 0, 10000, 100);
             self addOptIncSlider("Round", &Stats_Round, 0, 0, 10000, 100);
         break;
-        case "AllClient":
-            self addMenu(menu, "All Client Options");
-                self addOpt("All God Mode", &ClientFuncs, 0, undefined);
-                self addOpt("All Unlimited Ammo", &ClientFuncs, 1, undefined);
-                self addOpt("All Max Points", &ClientFuncs, 2, undefined);
-                self addOpt("Give Everyone All Perks", &ClientFuncs, 3, undefined);
-                self addOptIncSlider("Self Revives", &SetSelfRevives, 0, 0, 125, 5);
-        break;
-        case "GameModes":
-            self addMenu(menu, "Game Modes");
-                self addOpt("All The Weapons", &GameModeHandler, "All The Weapons");
-                self addOpt("Gun Game", &GameModeHandler, "Gun Game");
-        break;
-        case "Host Menu":
-            self addMenu(menu, "Host Menu");
-                self addOptBool(level.Modvars, "Toggle ModVars", &ModvarTest);
-                self addOpt("Map Selection", &newMenu, "Map Selection");
-                self addOpt("Exit Level", &PlayerExitLevel);
-                self addOpt("Print Weapon Display Name", &GetWeaponDisplayName);//Not a permanent option, can sit here
-                self addOpt("Print Weapon Hash", &GetWeaponHash);//Not a permanent Option, can sit here.
-                self addOpt("Print Coords", &BO4OriginPrint);
-                self addOpt("Camo Test", &Dev_UnlockCamos, self);
-                self addOpt("Restart Map", &RestartMap);
-            break;
-        case "Players":
-            self addMenu(menu, "Players");
-                foreach(player in level.players)
-                {
-                    if(!isDefined(player.playerSetting["verification"]))
-                        player.playerSetting["verification"] = level.MenuStatus[level.AutoVerify];
-                    
-                    self addOpt("[^5" + player.playerSetting["verification"] + "^6]" + player getName(), &newMenu, "Options " + player GetEntityNumber());
-                }
-            break;
-        default:
-            foundplayer = false;
-            for(a=0;a<level.players.size;a++)
-            {
-                sepmenu = StrTok(menu, " ");
-                if(int(sepmenu[(sepmenu.size - 1)]) == level.players[a] GetEntityNumber())
-                {
-                    foundplayer = true;
-                    self MenuOptionsPlayer(menu, level.players[a]);
-                }
-            }
-            
-            if(!foundplayer)
-            {
-                self addMenu(menu, "404 ERROR");
-                    self addOpt("Page Not Found");
-            }
-            break;
-    }
-}
-
-MenuOptionsPlayer(menu, player)
-{
-    self endon("disconnect");
-    
-    sepmenu = StrTok(menu, " " + player GetEntityNumber());
-    newmenu = "";
-    for(a=0;a<sepmenu.size;a++)
-    {
-        newmenu += sepmenu[a];
-        if(a != (sepmenu.size - 1))
-            newmenu += " ";
-    }
-    
-    switch(newmenu)
-    {
         case "Options":       
             self addMenu(menu, "[" + player.playerSetting["verification"] + "]" + player getName());
                 self addOpt("Verification", &newMenu, "Verification " + player GetEntityNumber());
